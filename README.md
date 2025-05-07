@@ -1,4 +1,4 @@
-![Stereolabs Icon](.assets/stereolabs-icon.png){width="150"}
+![Stereolabs Icon](.assets/stereolabs-icon.png){ width=150 }
 
 
 # 🔧 Debugging Workflows Using the ZED ROS Wrapper
