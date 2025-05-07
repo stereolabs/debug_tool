@@ -1,5 +1,3 @@
-![Stereolabs Icon](.assets/stereolabs-icon.png){ width=150 }
-
 
 # 🔧 Debugging Workflows Using the ZED ROS Wrapper
 This tutorial explains how to use the proposed debugging workflow with the ZED ROS package. Two main approaches are supported, depending on your debugging and evaluation needs:
