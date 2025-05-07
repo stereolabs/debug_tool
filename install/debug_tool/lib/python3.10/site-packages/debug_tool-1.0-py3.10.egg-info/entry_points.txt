@@ -1,0 +1,4 @@
+[console_scripts]
+control_svo_node = debug_tool.control_svo_node:main
+sync_node = debug_tool.sync_node:main
+

@@ -1,0 +1,13 @@
+sync_node:
+  zed_wrapper_topics:
+    - name: "/zed/zed_node/point_cloud/cloud_registered"
+      type: "sensor_msgs/msg/PointCloud2"
+    - name: "/zed/zed_node/left/image_rect_color"
+      type: "sensor_msgs/msg/Image"
+    - name: "/zed/zed_node/imu/data"
+      type: "sensor_msgs/msg/Imu"
+  rosbag_topics:
+    - name: "/scan"
+      type: "sensor_msgs/msg/LaserScan"
+    - name: "/tf"
+      type: "nav_msgs/msg/OccupancyGrid"

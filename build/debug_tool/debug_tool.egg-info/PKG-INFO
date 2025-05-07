@@ -1,0 +1,12 @@
+Metadata-Version: 2.1
+Name: debug-tool
+Version: 1.0
+Summary: Package allowing to sync data between a ROS Wrapper and a ROS2 bag
+Home-page: UNKNOWN
+Maintainer: stereolabs
+Maintainer-email: support@stereolabs.com
+License: Stereolabs
+Platform: UNKNOWN
+
+UNKNOWN
+

@@ -1,0 +1,41 @@
+[1.305s] Invoking command in '/home/user/Documents/dev/internal_ros_ws/src/sync_data': PYTHONPATH=/home/user/Documents/dev/internal_ros_ws/src/sync_data/build/debug_tool/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/user/Documents/dev/internal_ros_ws/src/sync_data/install/debug_tool/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base build/debug_tool build --build-base /home/user/Documents/dev/internal_ros_ws/src/sync_data/build/debug_tool/build install --record /home/user/Documents/dev/internal_ros_ws/src/sync_data/build/debug_tool/install.log --single-version-externally-managed install_data
+[1.806s] running egg_info
+[1.807s] creating build/debug_tool/debug_tool.egg-info
+[1.807s] writing build/debug_tool/debug_tool.egg-info/PKG-INFO
+[1.808s] writing dependency_links to build/debug_tool/debug_tool.egg-info/dependency_links.txt
+[1.808s] writing entry points to build/debug_tool/debug_tool.egg-info/entry_points.txt
+[1.808s] writing requirements to build/debug_tool/debug_tool.egg-info/requires.txt
+[1.808s] writing top-level names to build/debug_tool/debug_tool.egg-info/top_level.txt
+[1.809s] writing manifest file 'build/debug_tool/debug_tool.egg-info/SOURCES.txt'
+[1.811s] reading manifest file 'build/debug_tool/debug_tool.egg-info/SOURCES.txt'
+[1.813s] writing manifest file 'build/debug_tool/debug_tool.egg-info/SOURCES.txt'
+[1.813s] running build
+[1.813s] running build_py
+[1.813s] creating /home/user/Documents/dev/internal_ros_ws/src/sync_data/build/debug_tool/build
+[1.813s] creating /home/user/Documents/dev/internal_ros_ws/src/sync_data/build/debug_tool/build/lib
+[1.813s] creating /home/user/Documents/dev/internal_ros_ws/src/sync_data/build/debug_tool/build/lib/debug_tool
+[1.813s] copying debug_tool/control_svo_node.py -> /home/user/Documents/dev/internal_ros_ws/src/sync_data/build/debug_tool/build/lib/debug_tool
+[1.814s] copying debug_tool/sync_node.py -> /home/user/Documents/dev/internal_ros_ws/src/sync_data/build/debug_tool/build/lib/debug_tool
+[1.814s] copying debug_tool/__init__.py -> /home/user/Documents/dev/internal_ros_ws/src/sync_data/build/debug_tool/build/lib/debug_tool
+[1.814s] running install
+[1.815s] running install_lib
+[1.816s] creating /home/user/Documents/dev/internal_ros_ws/src/sync_data/install/debug_tool/lib/python3.10/site-packages/debug_tool
+[1.816s] copying /home/user/Documents/dev/internal_ros_ws/src/sync_data/build/debug_tool/build/lib/debug_tool/control_svo_node.py -> /home/user/Documents/dev/internal_ros_ws/src/sync_data/install/debug_tool/lib/python3.10/site-packages/debug_tool
+[1.816s] copying /home/user/Documents/dev/internal_ros_ws/src/sync_data/build/debug_tool/build/lib/debug_tool/sync_node.py -> /home/user/Documents/dev/internal_ros_ws/src/sync_data/install/debug_tool/lib/python3.10/site-packages/debug_tool
+[1.816s] copying /home/user/Documents/dev/internal_ros_ws/src/sync_data/build/debug_tool/build/lib/debug_tool/__init__.py -> /home/user/Documents/dev/internal_ros_ws/src/sync_data/install/debug_tool/lib/python3.10/site-packages/debug_tool
+[1.818s] byte-compiling /home/user/Documents/dev/internal_ros_ws/src/sync_data/install/debug_tool/lib/python3.10/site-packages/debug_tool/control_svo_node.py to control_svo_node.cpython-310.pyc
+[1.821s] byte-compiling /home/user/Documents/dev/internal_ros_ws/src/sync_data/install/debug_tool/lib/python3.10/site-packages/debug_tool/sync_node.py to sync_node.cpython-310.pyc
+[1.824s] byte-compiling /home/user/Documents/dev/internal_ros_ws/src/sync_data/install/debug_tool/lib/python3.10/site-packages/debug_tool/__init__.py to __init__.cpython-310.pyc
+[1.825s] running install_data
+[1.825s] creating /home/user/Documents/dev/internal_ros_ws/src/sync_data/install/debug_tool/share/ament_index
+[1.825s] creating /home/user/Documents/dev/internal_ros_ws/src/sync_data/install/debug_tool/share/ament_index/resource_index
+[1.825s] creating /home/user/Documents/dev/internal_ros_ws/src/sync_data/install/debug_tool/share/ament_index/resource_index/packages
+[1.825s] copying resource/debug_tool -> /home/user/Documents/dev/internal_ros_ws/src/sync_data/install/debug_tool/share/ament_index/resource_index/packages
+[1.825s] copying package.xml -> /home/user/Documents/dev/internal_ros_ws/src/sync_data/install/debug_tool/share/debug_tool
+[1.825s] running install_egg_info
+[1.829s] Copying build/debug_tool/debug_tool.egg-info to /home/user/Documents/dev/internal_ros_ws/src/sync_data/install/debug_tool/lib/python3.10/site-packages/debug_tool-1.0-py3.10.egg-info
+[1.831s] running install_scripts
+[1.869s] Installing control_svo_node script to /home/user/Documents/dev/internal_ros_ws/src/sync_data/install/debug_tool/lib/debug_tool
+[1.869s] Installing sync_node script to /home/user/Documents/dev/internal_ros_ws/src/sync_data/install/debug_tool/lib/debug_tool
+[1.870s] writing list of installed files to '/home/user/Documents/dev/internal_ros_ws/src/sync_data/build/debug_tool/install.log'
+[1.938s] Invoked command in '/home/user/Documents/dev/internal_ros_ws/src/sync_data' returned '0': PYTHONPATH=/home/user/Documents/dev/internal_ros_ws/src/sync_data/build/debug_tool/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/user/Documents/dev/internal_ros_ws/src/sync_data/install/debug_tool/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base build/debug_tool build --build-base /home/user/Documents/dev/internal_ros_ws/src/sync_data/build/debug_tool/build install --record /home/user/Documents/dev/internal_ros_ws/src/sync_data/build/debug_tool/install.log --single-version-externally-managed install_data
