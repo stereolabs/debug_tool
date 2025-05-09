@@ -8,7 +8,9 @@ This tutorial details the use of the ZED SDK and ZED ROS2 wrapper to **record** 
 
 - the __sync_node__: allows users to replay an SVO in the ZED ROS Wrapper and sync it with rosbag topics (limited at the moment to one rosbag topic of similar timerate like lidar data). Users can pause/resume the replay, and advance manually frame by frame while keeping topics synchronized. 
 
-- Rosbag replay workflow: allows users to leverage the rosbag functionalities for replaying data using the Mcap format. Rosbags can be replayed in Foxglove
+- Rosbag replay workflow: allows users to leverage the rosbag functionalities for replaying data using the Mcap format. Rosbags can be replayed in Foxglove.
+
+These tools can be used as part of debugging workflows, helping users optimize their robotics stack with ZED.
 
 ## ⚙️ **Installation**  
 
