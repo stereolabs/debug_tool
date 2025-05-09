@@ -23,7 +23,7 @@ from rcl_interfaces.srv import SetParameters
 
 class SVOController(Node):
     def __init__(self):
-        super().__init__('control_svo')
+        super().__init__('control_svo_replay_node')
 
         ## This sync node aims at synchronizing topics taken from a svo file and a rosbag. Users set up the topics they wish to sync together in a yaml file. 
         ## The rosbag is replayed directly from the node. The SVO is replayed in the ZED ROS wrapper with any camera parameters. Synchronized topics are published by the sync node. 
@@ -34,33 +34,43 @@ class SVOController(Node):
         
         ############################################################################################
 
+        self.namespace = self.declare_parameter("namespace", "").get_parameter_value().string_value
+
+        if self.namespace == "":
+            self.namespace = 'zed/zed_node'
+        else:
+            self.namespace = self.namespace+'/zed_node'
+
+        self.rate = self.declare_parameter("svo_replay_rate", 1.0).get_parameter_value().double_value
+        self.rate_increment = self.declare_parameter("svo_replay_rate_increment", 0.5).get_parameter_value().double_value
+
+
         ################################### SVO REPLAY #############################################
 
 
         #Listen to SVO status message 
-        self.svo_status_sub = self.create_subscription(SvoStatus,'/zed/zed_node/status/svo',self.svo_callback,10)
+        self.svo_status_sub = self.create_subscription(SvoStatus,'/'+self.namespace+'/status/svo',self.svo_callback,10)
         self.svo_current_frame = 0
         self.svo_current_timestamp = 0.0
-        self.rate = 1.0
-        self.rate_increment = 0.5
         self.paused = False
+        self.status_updated = False
         
         #Service to modify SVO replay rate
-        self.cli = self.create_client(SetParameters, '/zed/zed_node/set_parameters')
+        self.cli = self.create_client(SetParameters, '/'+self.namespace+'/set_parameters')
 
         while not self.cli.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('Waiting for /zed/zed_node/set_parameters service...')
+            self.get_logger().info('Waiting for'+ '/'+self.namespace+'/set_parameters service...')
 
         #Service to pause the SVO
-        self.svo_pause_client = self.create_client(Trigger, '/zed/zed_node/toggle_svo_pause')
+        self.svo_pause_client = self.create_client(Trigger, '/'+self.namespace+'/toggle_svo_pause')
         while not self.svo_pause_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('Waiting for service /zed/zed_node/toggle_svo_pause...')
+            self.get_logger().info('Waiting for service' + '/'+self.namespace+'/toggle_svo_pause...')
         self.pause_request = Trigger.Request()
 
         #Service to set frame position on SVO
-        self.set_svo_frame_position_client = self.create_client(SetSvoFrame, '/zed/zed_node/set_svo_frame')
+        self.set_svo_frame_position_client = self.create_client(SetSvoFrame, '/'+self.namespace+'/set_svo_frame')
         while not self.set_svo_frame_position_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('Waiting for service /zed/zed_node/set_svo_frame...')
+            self.get_logger().info('Waiting for service' + '/'+self.namespace+'/set_svo_frame...')
         self.frame_request = SetSvoFrame.Request()
 
         ############################################################################################
@@ -75,6 +85,20 @@ class SVOController(Node):
 
        ############################################################################################
 
+        # Print initial configuration
+        self.get_logger().info("=====================================================")
+        self.get_logger().info(f" Node '{self.get_name()}' started")
+        self.get_logger().info(f" Namespace           : {self.namespace}")
+        self.get_logger().info(f" Initial svo replay rate : {self.rate}")
+        self.get_logger().info(f" Rate increment step : {self.rate_increment}")
+        self.get_logger().info(" Keyboard controls:")
+        self.get_logger().info("   [Space] Pause/Resume")
+        self.get_logger().info("   [→]     Next svo frame (when paused)")
+        self.get_logger().info("   [←]     Previous svo  frame (when paused)")
+        self.get_logger().info("   [↑]     Increase svo replay rate")
+        self.get_logger().info("   [↓]     Decrease svo replay rate")
+        self.get_logger().info("=====================================================")
+
 
     def svo_callback(self, msg):
         """Gives information about the current SVO status. The SVO timestamp is compared with the rosbag timestamp all the time to ensure they are not diverging too much. 
@@ -84,11 +108,13 @@ class SVOController(Node):
         self.svo_current_timestamp = msg.frame_ts* 1e-9
         self.get_logger().debug(f"SVO current frame : {self.svo_current_frame}")
         self.get_logger().debug(f"SVO current timestamp : {self.svo_current_timestamp}")
+        self.status_updated = True
 
     
     def listen_for_keypress(self):
         """Listen for spacebar press to toggle pause"""
         def on_press(key):
+            time.sleep(0.5)
             if key == keyboard.Key.space:
                 self.paused = not self.paused
                 state = "Paused" if self.paused else "Resumed"
@@ -101,8 +127,11 @@ class SVOController(Node):
                 except Exception as e:
                   self.get_logger().error(f'Service call failed: {e}')
             elif key == keyboard.Key.left and self.paused:
+                while not self.status_updated: 
+                    print("waiting for svo feedback before moving to the previous frame")
                 #move svo to the previous frame
                 self.get_logger().info(f"[KEYBOARD] Moving to the previous frame")
+                self.status_updated = False
                 try:
                     self.frame_request.frame_id = self.svo_current_frame -1
                     self.frame_service_call = self.set_svo_frame_position_client.call_async(self.frame_request)
@@ -111,8 +140,11 @@ class SVOController(Node):
                 except Exception as e:
                     self.get_logger().error(f'Service call failed: {e}')
             elif key == keyboard.Key.right and self.paused:
+                while not self.status_updated: 
+                    print("waiting for svo feedback before moving to the previous frame")
                 #move svo to the next frame
                 self.get_logger().info(f"[KEYBOARD] Moving to the next frame")
+                self.status_updated = False
                 try:
                     self.frame_request.frame_id = self.svo_current_frame +1
                     self.frame_service_call = self.set_svo_frame_position_client.call_async(self.frame_request)
@@ -165,10 +197,14 @@ def main(args=None):
         svo_control_node = SVOController()
         rclpy.spin(svo_control_node)
     except KeyboardInterrupt:
-        svo_control_node.get_logger().info("Shutting down...")
+        if svo_control_node is not None:
+            svo_control_node.get_logger().info("Shutting down due to KeyboardInterrupt...")
     finally:
-        rclpy.shutdown()
-        sys.exit(0)
+        # Make sure the node is destroyed only if context is still valid
+        if rclpy.ok():
+            svo_control_node.get_logger().info("Shutting down cleanly...")
+            svo_control_node.destroy_node()
+            rclpy.shutdown()
 
 
 if __name__ == '__main__':

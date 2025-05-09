@@ -72,20 +72,20 @@ class DataSynchronizer(Node):
 
         #Service to pause the SVO
         self.svo_pause_client = self.create_client(Trigger, '/zed/zed_node/toggle_svo_pause')
-        while not self.svo_pause_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('Waiting for service /zed/zed_node/toggle_svo_pause...')
+        #while not self.svo_pause_client.wait_for_service(timeout_sec=1.0):
+            #self.get_logger().info('Waiting for service /zed/zed_node/toggle_svo_pause...')
         self.pause_request = Trigger.Request()
 
         #Service to set frame position on SVO
         self.set_svo_frame_position_client = self.create_client(SetSvoFrame, '/zed/zed_node/set_svo_frame')
-        while not self.set_svo_frame_position_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('Waiting for service /zed/zed_node/set_svo_frame...')
+        #while not self.set_svo_frame_position_client.wait_for_service(timeout_sec=1.0):
+           # self.get_logger().info('Waiting for service /zed/zed_node/set_svo_frame...')
         self.frame_request = SetSvoFrame.Request()
 
         # SVO Replay Rate parameters
         self.rate = 1.0
         self.error_integral = 0.0
-        self.kp = 0.02  # Proportional gain
+        self.kp = 0.002 # Proportional gain
         self.ki = 0.0001  # Integral gain
 
         ############################################################################################
@@ -99,6 +99,7 @@ class DataSynchronizer(Node):
         converter_options = rosbag2_py.ConverterOptions('', '')
         self.reader.open(storage_options, converter_options)
         self.rosbag_current_timestamp = 0.0 
+        self.rosbag_finished = False
 
         # Load topics from ROS Bag to synchronize (list of topics present in the yaml config file)
         self.load_rosbag_topics(self.yaml_file)
@@ -110,8 +111,12 @@ class DataSynchronizer(Node):
         topics = list(self.rosbag_topic_publishers.keys())
         self.reader.set_filter(rosbag2_py._storage.StorageFilter(topics=topics))
 
+        self.timer = self.create_timer(0.01, self.timer_callback)
+
         # Initialize pause flag
-        self.paused = False  
+        self.rosbag_paused = False 
+        self.svo_paused = False
+        self.keyboard_paused = False
 
         # Initialize rosbag rate
         self.rosbag_rate = 1.0 
@@ -120,15 +125,6 @@ class DataSynchronizer(Node):
          # Launch rosbag playback in a background thread
         self.playback_thread = Thread(target=self.play, daemon=True)
         self.playback_thread.start()
-
-        ############################################################################################
-
-         ################################### DATA SYNC ###############################################
-  
-        # Synchronize messages with ApproximateTimeSynchronizer
-        if self.sync_subscribers:
-            self.sync = message_filters.ApproximateTimeSynchronizer(self.sync_subscribers, 2000, 0.02, allow_headerless=True)
-            self.sync.registerCallback(self.synchronized_callback)
 
        ############################################################################################
 
@@ -155,8 +151,9 @@ class DataSynchronizer(Node):
         self.get_logger().info(f"SVO current frame : {self.svo_current_frame}")
         self.get_logger().info(f"SVO current timestamp : {self.svo_current_timestamp}")
         self.get_logger().info(f"ROSBAG current timestamp : {self.rosbag_current_timestamp}")
-        if self.paused:
-            ## if the ROSbag/ SVO replyay is paused, no need to adjust the rate
+
+        if self.svo_paused or self.rosbag_paused:
+            ## if the ROSbag/ SVO replay is paused, no need to adjust the rate
             return
 
         if self.svo_current_timestamp == 0.0 or self.rosbag_current_timestamp == 0.0:
@@ -165,46 +162,56 @@ class DataSynchronizer(Node):
         ## Calculating difference between both ROSbag / SVO timestamps
         ## The new rate is adjusted based on a PI controller logic whose parameters can be tuned. 
         error = self.rosbag_current_timestamp - self.svo_current_timestamp
-        self.get_logger().info(f"Time difference between SVO and rosbag : {error}")
+        self.get_logger().info(f"error is : {error}")
         adjustment = self.kp * error 
         self.rate += adjustment
-        ## Cap rate between [0.01,5.0]
-        self.rate = max(0.01, min(5, self.rate))
+        ## Cap rate between [0.1,5.0]
+        self.rate = max(0.85, min(1.15, self.rate))
 
         param = Parameter(name='svo.replay_rate', value=self.rate)
         req = SetParameters.Request()
         req.parameters = [param.to_parameter_msg()]
 
-        
-
         ## As the new rate is calculated, it is sent to the wrapper.
 
         ##call set SVO replay rate
-        try:
+        '''try:
           self.rate_service_call = self.cli.call_async(req)
           response = self.rate_service_call.result()
           self.get_logger().debug(f"SVO rate service call")
         except Exception as e:
-          self.get_logger().error(f'Service call failed: {e}')
-        
-
+          self.get_logger().error(f'Service call failed: {e}')'''
 
     def listen_for_keypress(self):
         """Listen for spacebar press to toggle pause"""
         def on_press(key):
             if key == keyboard.Key.space:
-                self.paused = not self.paused
-                state = "Paused" if self.paused else "Resumed"
+                self.keyboard_paused = not self.keyboard_paused
+                state = "Paused" if self.keyboard_paused else "Resumed"
                 self.get_logger().info(f"[KEYBOARD] {state}")
                 if state == "Resumed":
                      self.reset_time = True
-                ## Pause SVO 
-                try:
-                  self.pause_service_call = self.svo_pause_client.call_async(self.pause_request)
-                  response = self.pause_service_call.result()
-                  self.get_logger().debug(f"SVO Toggle pause service call")
-                except Exception as e:
-                  self.get_logger().error(f'Service call failed: {e}')
+                     if self.svo_paused == True:
+                        ## Pause SVO 
+                        try:
+                            self.pause_service_call = self.svo_pause_client.call_async(self.pause_request)
+                            response = self.pause_service_call.result()
+                            self.get_logger().debug(f"SVO Toggle pause service call")
+                        except Exception as e:
+                            self.get_logger().error(f'Service call failed: {e}')
+                        self.svo_paused = False
+                        self.rosbag_paused = False
+                if state == "Paused":
+                     self.rosbag_paused = True
+                     if self.svo_paused == False:
+                        ## Pause SVO 
+                        try:
+                            self.pause_service_call = self.svo_pause_client.call_async(self.pause_request)
+                            response = self.pause_service_call.result()
+                            self.get_logger().debug(f"SVO Toggle pause service call")
+                        except Exception as e:
+                            self.get_logger().error(f'Service call failed: {e}')
+                        self.svo_paused = True
             elif key == keyboard.Key.right:
                 ## When the SVO is paused, it is possibl to advance frame by frame when the right arrow key button is pressed.
                 self.advance()
@@ -214,36 +221,48 @@ class DataSynchronizer(Node):
             listener.join()
 
     def timer_callback(self):
-        """Replay messages from the rosbag"""
-        if not self.reader.has_next():
-            self.get_logger().info("Rosbag replay complete. Shutting down node.")
-            rclpy.shutdown()
-            sys.exit(0)  
-
-        while self.reader.has_next():
-            if self.paused:
-                return
-            self.get_logger().debug(f'Replaying bag: {self.bag_path}')
-            topic, data, t = self.reader.read_next()
-            if topic in self.topic_types:
+        """Replay messages"""
+        if self.keyboard_paused:
+            return
+        error = self.rosbag_current_timestamp - self.svo_current_timestamp
+        self.get_logger().info(f"Time difference between SVO and rosbag : {error}")
+        if abs(error)<1.0:
+            #if svo is paused, unpause it
+            if self.svo_paused:
+                self.svo_paused = False
+                ## unPause SVO 
                 try:
-                    msg_type = self.topic_types[topic]
-                    msg_class = get_message(msg_type)
-                    msg = deserialize_message(data, msg_class)
-                    if hasattr(msg, 'header') and hasattr(msg.header, 'stamp'):
-                      stamp = msg.header.stamp
-                      self.rosbag_current_timestamp = stamp.sec + stamp.nanosec * 1e-9
-                    if topic in self.rosbag_topic_publishers:
-                        self.rosbag_topic_publishers[topic].publish(msg)
-
+                  self.pause_service_call = self.svo_pause_client.call_async(self.pause_request)
+                  #rclpy.spin_until_future_complete(self, self.pause_service_call)
+                  #while not self.pause_service_call.done():
+                    #print("waiting")
+                    #continue
+                  response = self.pause_service_call.result()
+                  self.get_logger().info(f"SVO Toggle pause service call")
                 except Exception as e:
-                    self.get_logger().error(f'Error deserializing message for {topic}: {str(e)}')
-
-            break
+                  self.get_logger().error(f'Service call failed: {e}')
+            #if rosbag is paused, unpause it
+            if self.rosbag_paused:
+                self.rosbag_paused = False
+        elif error<0:
+            #svo is too advanced, pause it
+            if not self.svo_paused:
+                ## Pause SVO 
+                try:
+                    self.pause_service_call = self.svo_pause_client.call_async(self.pause_request)
+                    response = self.pause_service_call.result()
+                    self.get_logger().debug(f"SVO Toggle pause service call")
+                except Exception as e:
+                    self.get_logger().error(f'Service call failed: {e}')
+                self.svo_paused = True
+        elif error>0:
+            #rosbag too advanced, pause it:
+            self.rosbag_paused = True
+            
 
     def advance(self): 
         """In pause mode, advance on the rosbag message by message. As the bag timestamp increases, ensure the SVO timestamp remains synchronized by advancing on the SVO position"""
-        if not self.paused:
+        if not self.keyboard_paused:
            self.get_logger().info("Rosbag needs to be paused in order for the advance frame feature to work.")
            return
         
@@ -271,17 +290,6 @@ class DataSynchronizer(Node):
                 self.svo_current_frame = self.svo_current_frame+1
             except Exception as e:
                 self.get_logger().error(f'Service call failed: {e}')
-
-
-    def synchronized_callback(self, *msgs):
-        """Publish synchronized messages"""
-        if not msgs:
-            return
-
-        self.get_logger().debug(f"Publishing synchronized messages at timestamp {msgs[0].header.stamp.sec}.{msgs[0].header.stamp.nanosec}")
-
-        for topic, msg in zip(self.sync_topic_publishers.keys(), msgs):
-            self.sync_topic_publishers[topic].publish(msg)
 
 
     def load_wrapper_topics(self, yaml_file):
@@ -356,7 +364,7 @@ class DataSynchronizer(Node):
                 self.get_logger().info(f'Waiting for svo replay to start...')
                 continue
 
-            if self.paused:
+            if self.rosbag_paused:
                 continue 
 
             topic, data, t = self.reader.read_next()

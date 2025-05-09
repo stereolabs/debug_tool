@@ -1,6 +1,17 @@
 from setuptools import find_packages, setup
+import os
+from glob import glob
 
-package_name = 'debug_tool'
+package_name = 'ros2_replay_data'
+
+def package_files(directory):
+    paths = []
+    for (path, _, filenames) in os.walk(directory):
+        for filename in filenames:
+            filepath = os.path.join(path, filename)
+            install_path = os.path.join('share', package_name, path)
+            paths.append((install_path, [filepath]))
+    return paths
 
 setup(
     name=package_name,
@@ -10,7 +21,8 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-    ],
+        (os.path.join('share', package_name, 'launch'), glob('launch/*.py')),
+    ] + package_files('examples'),
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='stereolabs',
@@ -20,8 +32,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-        'sync_node = debug_tool.sync_node:main',
-        'control_svo_node = debug_tool.control_svo_node:main'
+        'sync_node = ros2_replay_data.sync_node:main',
+        'control_svo_node = ros2_replay_data.control_svo_node:main'
         ],
     },
 )
