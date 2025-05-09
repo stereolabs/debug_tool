@@ -53,16 +53,23 @@ def launch_setup(context, *args, **kwargs):
     # Launch configuration variables
     start_zed_node = LaunchConfiguration('start_zed_node')
     camera_name = LaunchConfiguration('camera_name')
+    namespace = LaunchConfiguration('namespace')
     camera_model = LaunchConfiguration('camera_model')
     svo_path = LaunchConfiguration('svo_path')
     bag_path = LaunchConfiguration('bag_path')
     yaml_path = LaunchConfiguration('yaml_config_path')
+    sync_queue_size = LaunchConfiguration('sync_queue_size')
+    sync_slop = LaunchConfiguration('sync_slop')
+    prefix = LaunchConfiguration('prefix')
 
+    namespace_val = namespace.perform(context)
     camera_name_val = camera_name.perform(context)
     camera_model_val = camera_model.perform(context)
     svo_path_val = svo_path.perform(context)
     bag_path_val = bag_path.perform(context)
     yaml_config_path_val = yaml_path.perform(context)
+    prefix_val = prefix.perform(context)
+    
 
     if (camera_name_val == ''):
         camera_name_val = 'zed'
@@ -105,7 +112,8 @@ def launch_setup(context, *args, **kwargs):
         launch_arguments={
             'camera_name': camera_name_val,
             'camera_model': camera_model_val,
-            'svo_path': svo_path_val
+            'svo_path': svo_path_val,
+            'namespace': namespace_val
         }.items(),
         condition=IfCondition(start_zed_node)
     )
@@ -118,9 +126,11 @@ def launch_setup(context, *args, **kwargs):
             parameters=[
                 {'bag_path': bag_path_val},
                 {'synchronized_topic_config_file': yaml_config_path_val},
-                {'namespace': camera_name_val},
-                {'sync_queue_size': 2000},
-                {'sync_slop': 0.3}
+                {'namespace': namespace_val},
+                {'camera_name': camera_name_val},
+                {'sync_queue_size': sync_queue_size},
+                {'sync_slop': sync_slop},
+                {'prefix': prefix_val}
             ],
         )
 
@@ -133,7 +143,7 @@ def launch_setup(context, *args, **kwargs):
             '180', '0', '0',       # Rotation: yaw pitch roll (degrees)
             'zed_left_camera_frame',  # Parent frame
             'ldlidar_link'             # Child frame
-        ]
+        ],
     )
 
     return [
@@ -156,6 +166,10 @@ def generate_launch_description():
                 default_value=TextSubstitution(text='zed'),
                 description='The name of the camera. It can be different from the camera model and it will be used as node `namespace`.'),
             DeclareLaunchArgument(
+                'namespace',
+                default_value=TextSubstitution(text=''),
+                description='Current namespace`.'),
+            DeclareLaunchArgument(
                 'camera_model',
                 description='[REQUIRED] The model of the camera. Using a wrong camera model can disable camera features.',
                 choices=['zed', 'zedm', 'zed2', 'zed2i', 'zedx', 'zedxm', 'virtual', 'zedxonegs', 'zedxone4k']),
@@ -171,6 +185,18 @@ def generate_launch_description():
                 'yaml_config_path',
                 default_value=TextSubstitution(text=default_yaml_config_path),
                 description='The yaml file that contains topics to synchronize together'),
+            DeclareLaunchArgument(
+                'prefix',
+                default_value=TextSubstitution(text=''),
+                description='String prefix to remove to wrapper topics'),
+            DeclareLaunchArgument(
+                'sync_queue_size',
+                default_value='2000',
+                description='Sync message filter queue size'),
+            DeclareLaunchArgument(
+                'sync_slop',
+                default_value='0.3',
+                description='Sync message filter slop'),
             OpaqueFunction(function=launch_setup)
         ]
     )

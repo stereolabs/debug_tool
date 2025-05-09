@@ -37,7 +37,13 @@ class DataSynchronizer(Node):
         self.bag_path = self.declare_parameter("bag_path", "").get_parameter_value().string_value
         self.yaml_file = self.declare_parameter("synchronized_topic_config_file", "").get_parameter_value().string_value
         self.namespace = self.declare_parameter("namespace", "").get_parameter_value().string_value
-        self.namespace = self.namespace+ '/zed_node'
+        self.camera_name = self.declare_parameter("camera_name", "").get_parameter_value().string_value
+        self.prefix = self.declare_parameter("prefix","").get_parameter_value().string_value
+
+        if self.namespace == "":
+            self.namespace = self.camera_name+'/zed_node'
+        else:
+            self.namespace = self.namespace+'/'+self.camera_name
         self.sync_queue_size = self.declare_parameter("sync_queue_size", 2000).get_parameter_value().integer_value
         self.sync_slop = self.declare_parameter("sync_slop", 0.3).get_parameter_value().double_value
 
@@ -130,7 +136,7 @@ class DataSynchronizer(Node):
   
         # Synchronize messages with ApproximateTimeSynchronizer
         if self.sync_subscribers:
-            self.sync = message_filters.ApproximateTimeSynchronizer(self.sync_subscribers, 2000, 0.3, allow_headerless=True)
+            self.sync = message_filters.ApproximateTimeSynchronizer(self.sync_subscribers, self.sync_queue_size, self.sync_slop, allow_headerless=True)
             self.sync.registerCallback(self.synchronized_callback)
 
        ############################################################################################
@@ -234,7 +240,7 @@ class DataSynchronizer(Node):
         ## Calculating difference between both ROSbag / SVO timestamps
         ## The new rate is adjusted based on a PI controller logic whose parameters can be tuned. 
         error = self.rosbag_current_timestamp - self.svo_current_timestamp
-        self.get_logger().debug(f"Time difference between SVO and rosbag : {error}")
+        self.get_logger().info(f"Time difference between SVO and rosbag : {error}")
         if abs(error)<0.25:
             self.rate = 1
         adjustment = self.kp * error 
@@ -356,7 +362,11 @@ class DataSynchronizer(Node):
                 msg_type = get_message(topic["type"])
                 subscriber = message_filters.Subscriber(self, msg_type, topic["name"])
                 self.sync_subscribers.append(subscriber)
-                publisher = self.create_publisher(msg_type, "/sync"+topic["name"], 10)
+                if self.prefix == "":
+                    topic_name = '/sync'+topic["name"]
+                else:
+                    topic_name = topic["name"].removeprefix(self.prefix)
+                publisher = self.create_publisher(msg_type, topic_name, 10)
                 self.sync_topic_publishers[topic["name"]] = publisher
 
                 self.get_logger().info(f"Created publisher for {topic['name']} [{topic['type']}]")

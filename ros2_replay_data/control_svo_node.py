@@ -35,11 +35,12 @@ class SVOController(Node):
         ############################################################################################
 
         self.namespace = self.declare_parameter("namespace", "").get_parameter_value().string_value
+        self.camera_name = self.declare_parameter("camera_name", "").get_parameter_value().string_value
 
         if self.namespace == "":
-            self.namespace = 'zed/zed_node'
+            self.namespace = self.camera_name+'/zed_node'
         else:
-            self.namespace = self.namespace+'/zed_node'
+            self.namespace = self.namespace+'/'+self.camera_name
 
         self.rate = self.declare_parameter("svo_replay_rate", 1.0).get_parameter_value().double_value
         self.rate_increment = self.declare_parameter("svo_replay_rate_increment", 0.5).get_parameter_value().double_value
@@ -72,6 +73,22 @@ class SVOController(Node):
         while not self.set_svo_frame_position_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('Waiting for service' + '/'+self.namespace+'/set_svo_frame...')
         self.frame_request = SetSvoFrame.Request()
+
+        #Call it with initial rate value
+        self.rate = self.rate
+        self.rate = max(0.1, min(5, self.rate))
+        self.get_logger().info(f"Replay SVO with initial rate: {self.rate}")
+        ##call set SVO replay rate
+        try:
+                    
+            param = Parameter(name='svo.replay_rate', value=self.rate)
+            req = SetParameters.Request()
+            req.parameters = [param.to_parameter_msg()]
+            self.rate_service_call = self.cli.call_async(req)
+            response = self.rate_service_call.result()
+            self.get_logger().debug(f"SVO rate service call")
+        except Exception as e:
+            self.get_logger().error(f'Service call failed: {e}')
 
         ############################################################################################
 

@@ -40,13 +40,19 @@ def launch_setup(context, *args, **kwargs):
 
     # Launch configuration variables
     start_zed_node = LaunchConfiguration('start_zed_node')
+    namespace = LaunchConfiguration('namespace')
     camera_name = LaunchConfiguration('camera_name')
     camera_model = LaunchConfiguration('camera_model')
     svo_path = LaunchConfiguration('svo_path')
+    replay_rate = LaunchConfiguration('svo_replay_rate')
+    replay_rate_increment = LaunchConfiguration('svo_replay_rate_increment')
 
+    namespace_val = namespace.perform(context)
     camera_name_val = camera_name.perform(context)
     camera_model_val = camera_model.perform(context)
     svo_path_val = svo_path.perform(context)
+    replay_rate_val = replay_rate.perform(context)
+    replay_rate_increment_val = replay_rate_increment.perform(context)
 
     if (camera_name_val == ''):
         camera_name_val = 'zed'
@@ -89,7 +95,8 @@ def launch_setup(context, *args, **kwargs):
         launch_arguments={
             'camera_name': camera_name_val,
             'camera_model': camera_model_val,
-            'svo_path': svo_path_val
+            'svo_path': svo_path_val,
+            'namespace': namespace_val
         }.items(),
         condition=IfCondition(start_zed_node)
     )
@@ -100,9 +107,10 @@ def launch_setup(context, *args, **kwargs):
             name='control_svo_replay_node',
             output='screen',
             parameters=[
-                {'svo_replay_rate': 1.0},
-                {'svo_replay_rate_increment': 0.1},
-                {'namespace': camera_name_val}
+                {'svo_replay_rate': replay_rate},
+                {'svo_replay_rate_increment': replay_rate_increment},
+                {'namespace': namespace_val},
+                {'camera_name': camera_name_val}
             ],
         )
 
@@ -121,6 +129,10 @@ def generate_launch_description():
                 default_value='True',
                 description='Set to `False` to start only RVIZ2 if a ZED node is already running.'),
             DeclareLaunchArgument(
+                'namespace',
+                default_value=TextSubstitution(text=''),
+                description='Current namespace`.'),
+            DeclareLaunchArgument(
                 'camera_name',
                 default_value=TextSubstitution(text=''),
                 description='The name of the camera. It can be different from the camera model and it will be used as node `namespace`.'),
@@ -132,6 +144,14 @@ def generate_launch_description():
                 'svo_path',
                 default_value=TextSubstitution(text=default_svo_path),
                 description='The svo file path to be used to replay the svo data'),
+            DeclareLaunchArgument(
+                'svo_replay_rate',
+                default_value='1.0',
+                description='The svo current replay rate'),
+            DeclareLaunchArgument(
+                'svo_replay_rate_increment',
+                default_value='0.1',
+                description='The svo current replay rate increment'),
             OpaqueFunction(function=launch_setup)
         ]
     )
