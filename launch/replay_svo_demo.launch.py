@@ -65,9 +65,9 @@ def launch_setup(context, *args, **kwargs):
 
     # RVIZ2 Configurations to be loaded by ZED Node
     config_rviz2 = os.path.join(
-        get_package_share_directory('zed_display_rviz2'),
-        'rviz2',
-        'zed_' + camera_type + '.rviz'
+        get_package_share_directory('ros2_replay_data'),
+        'rviz',
+        'replay_svo.rviz'
     )
 
     # RVIZ2 node
@@ -122,7 +122,7 @@ def generate_launch_description():
                 description='Set to `False` to start only RVIZ2 if a ZED node is already running.'),
             DeclareLaunchArgument(
                 'camera_name',
-                default_value=TextSubstitution(text='zed'),
+                default_value=TextSubstitution(text=''),
                 description='The name of the camera. It can be different from the camera model and it will be used as node `namespace`.'),
             DeclareLaunchArgument(
                 'camera_model',

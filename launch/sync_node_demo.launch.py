@@ -30,6 +30,24 @@ from launch.substitutions import (
 )
 from launch_ros.actions import Node
 
+default_svo_path = os.path.join(
+        get_package_share_directory('ros2_replay_data'),
+        'examples/person_walking_demo',
+        'person_walking_demo.svo2'
+)
+
+default_bag_path = os.path.join(
+        get_package_share_directory('ros2_replay_data'),
+        'examples/person_walking_demo/rosbag2_person_walking_demo',
+        'rosbag2_person_walking_demo.db3'
+)
+
+default_yaml_config_path = os.path.join(
+        get_package_share_directory('ros2_replay_data'),
+        'examples/person_walking_demo',
+        'synchronized_topics.yaml'
+)
+
 def launch_setup(context, *args, **kwargs):
 
     # Launch configuration variables
@@ -37,10 +55,14 @@ def launch_setup(context, *args, **kwargs):
     camera_name = LaunchConfiguration('camera_name')
     camera_model = LaunchConfiguration('camera_model')
     svo_path = LaunchConfiguration('svo_path')
+    bag_path = LaunchConfiguration('bag_path')
+    yaml_path = LaunchConfiguration('yaml_config_path')
 
     camera_name_val = camera_name.perform(context)
     camera_model_val = camera_model.perform(context)
     svo_path_val = svo_path.perform(context)
+    bag_path_val = bag_path.perform(context)
+    yaml_config_path_val = yaml_path.perform(context)
 
     if (camera_name_val == ''):
         camera_name_val = 'zed'
@@ -59,9 +81,9 @@ def launch_setup(context, *args, **kwargs):
 
     # RVIZ2 Configurations to be loaded by ZED Node
     config_rviz2 = os.path.join(
-        get_package_share_directory('zed_display_rviz2'),
-        'rviz2',
-        'zed_' + camera_type + '.rviz'
+        get_package_share_directory('ros2_replay_data'),
+        'rviz',
+        'replay_svo_sync.rviz'
     )
 
     # RVIZ2 node
@@ -88,20 +110,37 @@ def launch_setup(context, *args, **kwargs):
         condition=IfCondition(start_zed_node)
     )
     
-    Node(
+    sync_data_replay_node = Node(
             package='ros2_replay_data',
             executable='sync_node',
-            name='rosbag_svo_sync_node',
+            name='sync_data_replay_node',
             output='screen',
             parameters=[
-                {'bag_path': '/home/user/Downloads/rosbag2_2025_03_13-12_05_07'},
-                {'yaml_file': '/home/user/Documents/dev/ros_ws/src/ros2_replay_data/config/synchronized_topics.yaml'}
+                {'bag_path': bag_path_val},
+                {'synchronized_topic_config_file': yaml_config_path_val},
+                {'namespace': camera_name_val},
+                {'sync_queue_size': 2000},
+                {'sync_slop': 0.3}
             ],
         )
 
+    static_tf = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='static_tf_zed_to_lidar',
+        arguments=[
+            '0', '0', '0',         # Translation: x y z
+            '180', '0', '0',       # Rotation: yaw pitch roll (degrees)
+            'zed_left_camera_frame',  # Parent frame
+            'ldlidar_link'             # Child frame
+        ]
+    )
+
     return [
         rviz2_node,
-        zed_wrapper_launch
+        zed_wrapper_launch,
+        sync_data_replay_node,
+        static_tf 
     ]
 
 
@@ -122,8 +161,16 @@ def generate_launch_description():
                 choices=['zed', 'zedm', 'zed2', 'zed2i', 'zedx', 'zedxm', 'virtual', 'zedxonegs', 'zedxone4k']),
             DeclareLaunchArgument(
                 'svo_path',
-                default_value=TextSubstitution(text=''),
+                default_value=TextSubstitution(text=default_svo_path),
                 description='The svo file path to be used to replay the svo data'),
+            DeclareLaunchArgument(
+                'bag_path',
+                default_value=TextSubstitution(text=default_bag_path),
+                description='The bag file path to be used to replay the bag data'),
+            DeclareLaunchArgument(
+                'yaml_config_path',
+                default_value=TextSubstitution(text=default_yaml_config_path),
+                description='The yaml file that contains topics to synchronize together'),
             OpaqueFunction(function=launch_setup)
         ]
     )
