@@ -38,8 +38,7 @@ default_svo_path = os.path.join(
 
 default_bag_path = os.path.join(
         get_package_share_directory('ros2_replay_data'),
-        'examples/person_walking_demo/rosbag2_person_walking_demo',
-        'rosbag2_person_walking_demo.db3'
+        'examples/person_walking_demo/rosbag2_person_walking_demo'
 )
 
 default_yaml_config_path = os.path.join(

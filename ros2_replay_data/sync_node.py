@@ -22,6 +22,7 @@ from rclpy.parameter import Parameter
 from rcl_interfaces.srv import SetParameters
 from time import sleep, time
 from threading import Thread
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSDurabilityPolicy
 
 class DataSynchronizer(Node):
     def __init__(self):
@@ -168,6 +169,37 @@ class DataSynchronizer(Node):
         self.get_logger().info("=====================================================")
 
         ############################################################################################
+
+    
+    def get_qos_profiles_from_bag(self,bag_path, topic_name):
+        metadata_file = os.path.join(bag_path, 'metadata.yaml')
+        if not os.path.exists(metadata_file):
+            raise FileNotFoundError("metadata.yaml not found in bag path")
+
+        with open(metadata_file, 'r') as f:
+            metadata = yaml.safe_load(f)
+
+        for topic in metadata['rosbag2_bagfile_information']['topics_with_message_count']:
+            name = topic['topic_metadata']['name']
+            if name == topic_name:
+                qos_profiles_str = topic['topic_metadata']['offered_qos_profiles']
+                qos_profiles = yaml.safe_load(qos_profiles_str)[0]  # Usually a list with one dict
+                depth = qos_profiles.get('depth', 10)
+                reliability = qos_profiles.get('reliability', 'RELIABLE')
+                durability = qos_profiles.get('durability', 'VOLATILE')
+
+                qos_profile = QoSProfile(
+                    depth=depth,
+                    reliability=reliability,
+                    durability=durability
+                )
+
+                self.get_logger().debug(f"  Reliability     : {qos_profile.reliability.name}")
+                self.get_logger().debug(f"  Durability      : {qos_profile.durability.name}")
+                self.get_logger().debug(f"  Depth           : {qos_profile.depth}")
+                return qos_profile
+
+        raise ValueError(f"Topic {topic_name} not found in bag metadata.")
 
     
     def initial_timestamp_match(self):
@@ -397,9 +429,10 @@ class DataSynchronizer(Node):
                 msg_type = get_message(topic["type"])
                 subscriber = message_filters.Subscriber(self, msg_type, "/bag"+topic["name"])
                 self.sync_subscribers.append(subscriber)
-                publisher = self.create_publisher(msg_type, topic["name"], 10)
+                qos = self.get_qos_profiles_from_bag(self.bag_path, topic["name"])
+                publisher = self.create_publisher(msg_type, topic["name"], qos)
                 self.sync_topic_publishers[topic["name"]] = publisher
-                publisher = self.create_publisher(msg_type, "/bag"+topic["name"], 10)
+                publisher = self.create_publisher(msg_type, "/bag"+topic["name"], qos)
                 self.rosbag_topic_publishers[topic["name"]] = publisher
                 self.get_logger().info(f"Created publisher for {topic['name']} [{topic['type']}]")
 
