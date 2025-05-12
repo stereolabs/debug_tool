@@ -170,6 +170,7 @@ def generate_launch_description():
                 description='Current namespace`.'),
             DeclareLaunchArgument(
                 'camera_model',
+                default_value=TextSubstitution(text='zedx'),
                 description='[REQUIRED] The model of the camera. Using a wrong camera model can disable camera features.',
                 choices=['zed', 'zedm', 'zed2', 'zed2i', 'zedx', 'zedxm', 'virtual', 'zedxonegs', 'zedxone4k']),
             DeclareLaunchArgument(
