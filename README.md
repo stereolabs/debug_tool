@@ -8,8 +8,6 @@ This tutorial details the use of the ZED SDK and ZED ROS2 wrapper to **record** 
 
 - the __sync_node__: allows users to replay an SVO in the ZED ROS Wrapper and sync it with rosbag topics (limited at the moment to one rosbag topic of similar timerate like lidar data). Users can pause/resume the replay, and advance manually frame by frame while keeping topics synchronized. 
 
-- Rosbag replay workflow: allows users to leverage the rosbag functionalities for replaying data using the Mcap format. Rosbags can be replayed in Foxglove.
-
 These tools can be used as part of debugging workflows, helping users optimize their robotics stack with ZED.
 
 ## ⚙️ **Installation**  
@@ -276,18 +274,14 @@ ros2 launch ros2_replay_data sync_node_demo.launch.py
 
 <img src=".assets/sync_svo_rosbag.gif">
 
-The example displays the current SVO pointcloud. The rosbag contains the data from an external sensor source (Lidar) that is shown synchronized with the ZED wrapper topics. The SVO can be paused by pressing 'space' with the keyboard. Then, users can explore it messages by messages (right arrows). Users can adapt the demo launcher, example and rviz panels to fit their usecase and the parameters/topics they wish to see replayed and displayed from the ZED wrapper.
+The example displays the current pointcloud. The rosbag contains the data from an external sensor source (Lidar) that is shown synchronized with the ZED wrapper topics. The SVO can be paused by pressing 'space' with the keyboard. Then, users can explore it messages by messages (right arrows). Users can adapt the demo launcher, example and rviz panels to fit their usecase and the parameters/topics they wish to see replayed and displayed from the ZED wrapper.
 
 
 #### Limitations : Recommended Debugging Workflow.
 
 Please note that this synchronization workflow can work on a limited number of topics. Synchronization can break easily if the SVO or rosbags were recorded under heavy load and are missing frames. To scale up with data replaying on a full robotic setup, we currently recommend the following workflow : 
 - leverage the SVO with the svo controller node to optimize SDK parameters. Sync node can also be used for this purpose. 
-- Once SDK parameters are optimized for your usecase, setup all your ROS nodes with the ZED wrapper and only record rosbags of the all the relevants topics to be then replayed with visualizers like __Foxglove__ or __Rviz__.
-
-### Replay Rosbags 
-
-The full rosbag data (containing ZED wrapper topics + other modules topics) can be replayed in __Foxglove__. The MCAP format can be direclty opened in Foxglove and the panel updated to replay the relevant needed topics. Data is always synchronized, can be paused, fast-forwared or rewinded.
+- Once SDK parameters are optimized for your usecase, setup all your ROS nodes with the ZED wrapper and only record rosbags of the all the relevants topics to be then replayed with visualizers like __Foxglove__ or __Rviz__. For these rosbags, we recommend using the [mcap compression mode](https://github.com/ros2/rosbag2/tree/rolling/rosbag2_storage_mcap). The MCAP format can be direclty opened in __Foxglove__ and the panel updated to replay the relevant needed topics. Data is always synchronized, can be paused, fast-forwared or rewinded.
 
 
 
