@@ -61,9 +61,7 @@ An SVO file is a proprietary video file format used by ZED stereo camera. The fi
 
 - IMU data (if enabled)
 
-Check this [tutorial](https://www.stereolabs.com/docs/video/recording) to learn how to record an SVO.
-
-Svo files can also be recorded in two other different ways : directly from __Zed_Explorer__ or using the ZED Ros wrapper.
+Svo files can be recorded in two different ways : directly from __Zed_Explorer__ or using the ZED Ros wrapper.
 
 #### Recording SVO files using the ZED_Explorer
 
@@ -102,21 +100,36 @@ ros2 service call /zed/zed_node/start_svo_rec zed_msgs/srv/StartSvoRec "{svo_fil
 
 ### Recording Rosbag Files
 
-Rosbag is the standard format in ROS for recording and storing topic messages. We recommend using the [mcap](https://github.com/ros2/rosbag2/tree/rolling/rosbag2_storage_mcap) storage format, as it offers efficient compression and seamless compatibility with [Foxglove](https://foxglove.dev/blog/mcap-as-the-ros2-default-bag-format). This enables users to replay the data interactively — with features like pause, fast-forward, and rewind — making it ideal for analysis and visualization.
 
 1️⃣ **Launch the ZED ROS 2 Wrapper:**  
 ```bash
 ros2 launch zed_wrapper zed_camera.launch.py camera_model:=<camera_model>
 ```
+For this step, the wrapper launcher can be replaced with the launcher of the full robotics stack (involving the wrapper + any other sensor node and proprietary navigation nodes).
 
-2️⃣ Follow [these](https://github.com/ros2/rosbag2/tree/rolling/rosbag2_storage_mcap) commands to record the rosbag.
+2️⃣ **Record node topics as a Rosbag file**
 
-💡 Tips for recording rosbags efficiently 
+Use the rosbag record tool to record the data you want.
+Add the desired topics in a text file, for example : (make sure to change the topics names based on the node namespace)
+```json
+/zed/zed_node/left/camera_info
+/zed/zed_node/left/image_rect_color/compressed
+/zed/zed_node/point_cloud/cloud_registered
+/zed/zed_node/status/health
+/zed/zed_node/obj_det/objects
+.... + other topics
+```
+In a new terminal, run:
+```bash
+ros2 bag record -s $(< path/to/txt/file/file.txt)
+```
+
+💡 Tips for recording rosbags efficiently and reduce overall recording load : 
 
 > Record only topics you need.
 > Split large bags with the `--max-bag-size` or `--max-bag-duration` parameters.
 > For better performances, used compressed topics for images and pointclouds when possible. The ZED ROS wrapper provides such topics.
-> Reduce frame rate for the images and pointclouds (e.g from 30 fps to 10 fps) to reduce rosbag loads.
+> Reduce frame rate for the images and pointclouds (e.g from 30 fps to 10 fps) to reduce rosbag loads.Reduce publishing rates of other topics when a fast publishing rate (>10 Hz) is not necessary.
 
 ## ▶️ Replaying Data
 
@@ -167,11 +180,17 @@ Initial `replay_rate` and `replay_rate_increment` are specified in the launcher.
 
 #### Demo 
 
-The package is provided by default with a demo launcher of a person walking in a room. To launch it : 
+The package is provided by default with a demo launcher of a person walking in a room. To launch it: 
 
 ```bash 
-ros2 launch ros2_replay_data replay_svo_demo.launch.py camera_model:=zedx
+ros2 launch ros2_replay_data replay_svo_demo.launch.py
 ```
+
+You should see the following RVIZ panel displayed on screen:
+
+<img src=".assets/replay_svo.gif">
+
+The example displays the current SVO RBG image, depth image and pointcloud as well as a bounding box for obstacle detection. The SVO can be paused by pressing 'space' with the keyboard. Then, users can explore it frame by frame or rewind on previous frames to check the data output (left/right arrows). The replay rate can be increased/decreased (up/down) arrow. Users can adapt the demo launcher, example and rviz panels to fit their usecase and the parameters/topics they wish to see replayed and displayed from the ZED wrapper.
 
 ### Synchronize the SVO with Rosbag topics
 
@@ -214,14 +233,17 @@ Modify the **common_stereo.yaml** configuration file:
 Then launch the demo launcher : 
 
 ```bash 
-ros2 launch ros2_replay_data sync_node_demo.launch.py namespace:=<namespace> camera_model:=<camera_model> camera_name:=<camera_name> bag_path:=<path/to/file.db3> svo_path:=<path/to/file.svos2> synchronized_topic_config_file:=<path/to/file.yaml> sync_queue_size:=<size> sync_slop:=<slop>
+ros2 launch ros2_replay_data sync_node_demo.launch.py namespace:=<namespace> camera_model:=<camera_model> camera_name:=<camera_name> bag_path:=<path/to/rosbag_folder> svo_path:=<path/to/file.svos2> synchronized_topic_config_file:=<path/to/file.yaml> sync_queue_size:=<size> sync_slop:=<slop>
 ```
 
 An example would be: 
 
 ```bash 
-ros2 launch ros2_replay_data sync_node_demo.launch.py namespace:='sync_node' camera_model:='zedx' camera_name:='zed_front' bag_path:='rosbag.db3' svo_path:='record.svo2' synchronized_topic_config_file:='topics.yaml' sync_queue_size:=2000 sync_slop:=0.3 
+ros2 launch ros2_replay_data sync_node_demo.launch.py namespace:='sync_node' camera_model:='zedx' camera_name:='zed_front' bag_path:='rosbag_record/' svo_path:='record.svo2' synchronized_topic_config_file:='topics.yaml' sync_queue_size:=2000 sync_slop:=0.3 
 ```
+
+> A Rosbag is generally composed of a folder containing a metadata.yaml file and the topics databse (.db3) file. The node takes as input the folder path only, allowing to replay the topics using the metadata configurations (particularly the topics QoS profiles).
+> At the moment, rosbag recorded with the mcap compression mode are not supported by the sync Node.
 
 Parameters :
 - `sync_queue_size`: The number of messages to store for each input topic. Helps the synchronizer match messages by keeping recent history. Larger queue_size = more chance to find a match, but uses more memory.
@@ -249,18 +271,23 @@ For example, `/zed/zed_node/point_cloud/cloud_registered` becomes:
 The package is provided by default with a demo launcher of a person walking in a room. To launch it : 
 
 ```bash 
-ros2 launch ros2_replay_data sync_node_demo.launch.py camera_model:=zedx
+ros2 launch ros2_replay_data sync_node_demo.launch.py 
 ```
+
+<img src=".assets/sync_svo_rosbag.gif">
+
+The example displays the current SVO pointcloud. The rosbag contains the data from an external sensor source (Lidar) that is shown synchronized with the ZED wrapper topics. The SVO can be paused by pressing 'space' with the keyboard. Then, users can explore it messages by messages (right arrows). Users can adapt the demo launcher, example and rviz panels to fit their usecase and the parameters/topics they wish to see replayed and displayed from the ZED wrapper.
+
 
 #### Limitations : Recommended Debugging Workflow.
 
 Please note that this synchronization workflow can work on a limited number of topics. Synchronization can break easily if the SVO or rosbags were recorded under heavy load and are missing frames. To scale up with data replaying on a full robotic setup, we currently recommend the following workflow : 
 - leverage the SVO with the svo controller node to optimize SDK parameters. Sync node can also be used for this purpose. 
-- Once SDK parameters are optimized for your usecase, setup all your ROS nodes with the ZED wrapper and record rosbags of the all the relevants topics.
+- Once SDK parameters are optimized for your usecase, setup all your ROS nodes with the ZED wrapper and only record rosbags of the all the relevants topics to be then replayed with visualizers like __Foxglove__ or __Rviz__.
 
 ### Replay Rosbags 
 
-The full rosbag data (containing ZED wrapper topics + other modules topics) can be replayed in Foxglove. The MCAP format can be direclty opened in Foxglove and the panel updated to replay the relevant needed topics. Data is always synchronized, can be paused, fast-forwared or rewinded.
+The full rosbag data (containing ZED wrapper topics + other modules topics) can be replayed in __Foxglove__. The MCAP format can be direclty opened in Foxglove and the panel updated to replay the relevant needed topics. Data is always synchronized, can be paused, fast-forwared or rewinded.
 
 
 
