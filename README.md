@@ -1,26 +1,22 @@
 <img src=".assets/stereolabs-icon.png" width="150">
 
-# 🎬 ZED ROS Wrapper: Replaying Data stored in SVO / Rosbag files to debug your Robotic stack  
+# 🎬 ZED ROS 2 Data Replay Tools: Debug and Optimize Your Navigation Stack with SVO/Rosbag
 
-This tutorial details the use of the ZED SDK and ZED ROS2 wrapper to **record** and **replay** data offline with different files (SVO, Rosbag) and replay tools. These tools can be used as part of debugging workflows, helping users optimize their robotics stack with ZED.
+This tutorial provides a comprehensive guide to using the **ZED ROS 2 wrapper** to record, replay, and synchronize sensor data offline using various formats like **SVO** and **rosbag**. These tools are essential for developers working with the ZED stereo cameras in a ROS 2 environment, particularly when building, testing, or debugging complex robotics applications. They allow you to replicate scenarios offline, without needing live hardware or real-time replay. This leads to faster iteration, reproducibility, and deeper insights into system behavior.
 
+🔁 **Tool for Replaying SVOs**
 
-**Tool for replaying SVOs**
+`svo_control_node`: Enables precise control over the playback of SVO files using the ZED ROS 2 wrapper. Features include pausing/resuming, stepping forward/backward, and adjusting playback speed.
 
-- the __svo_control_node__: allows users to control the replay of an SVO launched with the ZED ROS wrapper. Users can pause/resume the rosbag, change the svo position manually forward or in reverse, increase/decrease the replay rate. 
+🔄 **Tools for Synchronizing SVO and ROSBags**
 
-**Tools for replaying SVOs in combination with ROSBags**
+`sync_node`: Allows synchronized playback between SVO files and external navigation modules topics provided from a rosbag. Features include pausing/resuming, stepping forward on the data while maintaining synchronization.
 
-- the __sync_node__: allows users to replay an SVO in the ZED ROS Wrapper and sync it with rosbag topics (limited at the moment to rosbag topics of similar timerate). Users can pause/resume the replay, and advance manually frame by frame while keeping topics synchronized.
-
-- convert an SVO to a Rosbag workflow
-
+`SVO to Rosbag Conversion Workflow`: Offers a method to convert ZED-recorded .svo files into standard ROS 2 bag files and merge it with another rosbag containaing external navigation modules topics. 
 
 ## ⚙️ **Installation**  
 
 ### **1️⃣ Install the ZED SDK and ROS 2 Wrapper**  
-
-**Dependencies**: 
 
 -  Install the latest [ZED SDK](https://www.stereolabs.com/en-fr/developers/release) version.
 -  Install [ROS2 Humble](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html)
@@ -37,7 +33,7 @@ git clone https://github.com/stereolabs/zed-ros2-interfaces.git
 git clone https://github.com/stereolabs/ros2_replay_data
 ``` 
 
-> If you already have the ZED ROS2 Wrapper installed, pull from the latest `master` branch to update it.
+> 💡 If you already have the ZED ROS2 Wrapper installed, pull from the latest `master` branch to update it.
 
 ---
 ### **2️⃣ Build the current ROS2 Packages**  
@@ -61,30 +57,22 @@ source ~/.bashrc
 
 ## 🔴 Recording Data 
 
-### ZED SDK : Record SVO files
+### Record SVO files with the ZED Ros Wrapper 
 
-An SVO file is a proprietary video file format used by ZED stereo camera. The file stores:
+> An SVO file is a proprietary video format used by the ZED stereo camera to record:
+> - Synchronized stereo video (left and right images)
+> - Inertial Measurement Unit (IMU) data (if enabled)
 
-- Synchronized stereo video (left and right images)
+✅ **Main advantages of the SVO**
 
-- IMU data (if enabled)
+- **Low load** during recording (file size and CPU usage). No need to collect heavy data like pointclouds and stereo images, those can be later processed from the ZED wrapper during replay.
+- **SDK parameters optimization** during replay, allowing users to run the same recorded sequences multiple times while adjusting ZED SDK parameters. This makes it easy to fine-tune performance by experimenting with settings like depth mode, resolution, or tracking—without re-recording data.
 
-Svo files can be recorded in two different ways : directly from __Zed_Explorer__ or using the ZED Ros wrapper.
+🚫 **SVO Limitations**
 
-Svos can later be replayed with the ROS wrapper and tools from this package giving users the flexibility to replay the same recorded sequences multiple times with different ZED SDK parameters and optimize the cameras performances for each sequence.  
+- **Record and replay SDK data only**, users cannot record the data from external ROS navigation modules in this format. 
 
-#### Recording SVO files using the ZED_Explorer
-
-1️⃣ **Launch ZED_Explorer:**  
-```bash
-ZED_Explorer
-```
-
-2️⃣  **Start/Stop  recording an SVO file:** 
-
-By default, SVOs are recorded with the H265 Lossy compression mode. As the camera is streaming and the stereo image is displayed, click on the __"REC"__ button to start the recording session. Click again on the __"REC"__ button to stop the recording session.
-
-#### Recording SVO files using the ZED ROS Wrapper
+#### Recording Instructions
 
 1️⃣ **Launch the ZED ROS 2 Wrapper:**  
 ```bash
@@ -98,9 +86,9 @@ In a new terminal:
 ```bash
 ros2 service call /zed/zed_node/start_svo_rec zed_msgs/srv/StartSvoRec "{svo_filename: '/path/to/svo/file/file.svo2', compression_mode: <choose between 0 and 4>}
 ```
-> **Note:** By default, the SVO file is saved as `zed.svo2` in the current directory. To change this, use the `svo_filename` parameter. 
-> **Note:** Compression mode by default will be 0 if not assigned, which is the H265 LOSSY compression mode, similar to __ZED_Explorer__.
-> If you are using namespaces to run your node, adapt the command with the corresponding service name that includes the service.
+> 💡 **Note:** By default, the SVO file is saved as `zed.svo2` in the current directory. To change this, use the `svo_filename` parameter.
+>  Compression mode by default will be 0 if not assigned, which is the H265 LOSSY compression mode, similar to __ZED_Explorer__.
+>  If you are using namespaces to run your node, adapt the command with the corresponding service name that includes the namespace.
 
 3️⃣  **Stop the SVO recording:**  
 
@@ -108,9 +96,20 @@ ros2 service call /zed/zed_node/start_svo_rec zed_msgs/srv/StartSvoRec "{svo_fil
   ros2 service call /zed/zed_node/stop_svo_rec std_srvs/srv/Trigger
 ```
 
-### Full Robotics Stack : Record Rosbag Files
+### Record Rosbag Files
 
-Rosbags are the commonly used files within the ROS framework to replay data and debug complex robotics system. They record topics from your stack modules and allow to replay them and visualize them using __RVIZ__ or __Foxglove__. Users do not have the flexibility to change parameters and optimize the recorded sequence during replay, but they can pause on the data and advance frame by frame to detect critical bugs in their navigation modules. Rosbag can impose a heavy load on your system while recording. Use the following tips to optimize recording performances.
+>Rosbag files are the commonly used files within the ROS framework to replay data and debug complex robotics system. They record topics from your stack modules and allow to replay them and visualize them using __RVIZ__ or __Foxglove__.
+
+✅ **Main advantages of the Rosbag**
+
+- **Record and replay the full robotic stack** Possibility to record all ROS topics from all navigation modules, including standard ROS messages and proprietary ones.
+
+🚫 **Rosbag Limitations**
+
+- **Heavy recording load**, depending on the topics selected to record (ie: sensor data like images and pointclouds are quite heavy for example).
+- **Not possible to modify parameters** during the replay for optimization.
+
+#### Recording Instructions
 
 1️⃣ **Launch your full Robotics Stack**  
 
@@ -118,36 +117,26 @@ For this step, You can launch your typical ROS launcher that will include all yo
 
 2️⃣ **Record node topics as a Rosbag file**
 
-Use the rosbag record tool to record the data you want.
-Add the desired topics in a text file, for example : (make sure to change the topics names based on the node namespace)
-```json
-/zed/zed_node/left/camera_info
-/zed/zed_node/left/image_rect_color/compressed
-/zed/zed_node/point_cloud/cloud_registered
-/zed/zed_node/status/health
-/zed/zed_node/obj_det/objects
-.... + other module topics
-```
-In a new terminal, run:
+Add the desired topics you wish to record in a text file and use the `ros2 bag record` tool to capture the rosbag: 
+
 ```bash
 ros2 bag record -s $(< path/to/txt/file/topics_to_record.txt)
 ```
 
-💡 Tips for recording rosbags efficiently and reduce overall recording load : 
+🔥 **Tips for recording rosbags efficiently and reduce overall recording load: **
 
-> Record only topics you need.
-> Split large bags with the `--max-bag-size` or `--max-bag-duration` parameters.
-> For better performances, used compressed topics for images and pointclouds when possible. The ZED ROS wrapper provides such topics.
-> Reduce frame rate for the images and pointclouds (e.g from 30 fps to 10 fps) to reduce rosbag loads.Reduce publishing rates of other topics when a fast publishing rate (>10 Hz) is not necessary.
+> - Record only topics you need.
+> - Split large bags with the `--max-bag-size` or `--max-bag-duration` parameters.
+> - For better performances, used compressed topics for images and pointclouds when possible. The ZED ROS wrapper provides such topics.
+> - Reduce frame rate for the images and pointclouds (e.g from 30 fps to 10 fps) to reduce rosbag loads.Reduce publishing rates of other topics when a fast publishing rate (>10 Hz) is not necessary.
 
 ### 🚀 Recommended Recording Workflow
 
-To further optimize the recording performances, we recommend to record simultaneously an SVO and a Rosbag with the following tips : 
+To get the most out of both SVO and rosbag formats—minimizing recording overhead while maximizing replay flexibility—we recommend to simultaneously record an SVO and a rosbag:
 
-- Svo recorded in H265 Lossy directly from the ZED Wrapper.
-- Rosbag only records topics that not related to the ZED SDK (removing heavy topics like pointclouds and image that downgrade performances)
-
-
+- Launch your full navigation stack, including the ZED ROS 2 wrapper and any external navigation modules (e.g. SLAM, localization, planners).
+- Record the SVO using the ZED wrapper with H.265 lossy compression (as described above) with minimal impact on system performance.
+- Record a rosbag that excludes ZED SDK topics (e.g. point clouds, raw images), and instead focuses on external navigation modules to reduce bandwidth and disk usage during runtime.
 
 ## ▶️ Replaying Data
 
@@ -155,12 +144,11 @@ To further optimize the recording performances, we recommend to record simultane
 
 #### What to use it for ?
 
-- Replaying specific recorded sequences in ROS with different SDK parameters to optimize modules (depth, positional tracking, object detection).
-- Test new AI models on the recorded sequence to check for improvements
+- Replaying specific recorded sequences in ROS with different SDK parameters to optimize zed modules (depth, positional tracking, object detection).
+- Test new AI models on the recorded sequence to check for improvements (ie: object detection).
 - Inspect carefully a scene to detect potential issues.
 - Output topics can be reused as input of other nodes to check their behavior.
-
-
+  
 #### How to use it
 
 Modify the **common_stereo.yaml** configuration file:  
@@ -169,7 +157,7 @@ Modify the **common_stereo.yaml** configuration file:
 - ✅ Set `svo.replay_rate` to **1.0**   
 - ✅ Adjust any other camera parameters as needed 
 
-Then launch the demo launcher : 
+Then launch the node: 
 
 ```bash 
 ros2 launch ros2_replay_data replay_svo_demo.launch.py namespace:=<namespace> camera_model:=<camera_model> camera_name:=<camera_name> svo_path:=<path/to/file.svos2> svo_replay_rate:=<rate> svo_replay_rate_increment:=<increment> 
@@ -214,16 +202,16 @@ The example displays the current SVO RBG image, depth image and pointcloud as we
 
 #### What is it used for ? 
 
-- Replaying specific recorded sequences with different SDK parameters to optimize modules (depth, positional tracking, object detection) synchronized with external recorded data (e.g other sensors, other robotics module messages,  proprietary ros messages...)
+- Replaying specific recorded sequences with different SDK parameters to optimize modules (depth, positional tracking, object detection) **synchronized with external recorded data** (e.g other sensors, other robotics module messages,  proprietary ros messages...)
 - Test new AI models on the recorded sequence to check for improvements
 - Inspect carefully a scene to detect potential issues.
 - Topics can be reused as input of other nodes to check their behavior.
 
 #### How to use it ? 
 
-1️⃣  Record a Svo and rosbag simultaneously ( very important that they be recorded with the same timestamps to be able to synchronize ).
+1️⃣  Record an Svo and rosbag simultaneously as per our recommended recording instructions (very important that they be recorded with the same timestamps to be able to synchronize).
 
-2️⃣ Configure the yaml file to add the topics you want to be synchronized : 
+2️⃣ Configure the yaml file to add the topics you want to be synchronized: 
  
 Example **YAML file (topics.yaml)**:  
 ```yaml
@@ -249,7 +237,6 @@ Modify the **common_stereo.yaml** configuration file:
 - ✅ Adjust any other camera parameters as needed  
 
 Then launch the demo launcher : 
-
 ```bash 
 ros2 launch ros2_replay_data sync_node_demo.launch.py namespace:=<namespace> camera_model:=<camera_model> camera_name:=<camera_name> bag_path:=<path/to/rosbag_folder> svo_path:=<path/to/file.svos2> synchronized_topic_config_file:=<path/to/file.yaml> sync_queue_size:=<size> sync_slop:=<slop>
 ```
@@ -261,7 +248,7 @@ ros2 launch ros2_replay_data sync_node_demo.launch.py namespace:='sync_node' cam
 ```
 
 > A Rosbag is generally composed of a folder containing a metadata.yaml file and the topics databse (.db3) file. The node takes as input the folder path only, allowing to replay the topics using the metadata configurations (particularly the topics QoS profiles).
-> At the moment, rosbag recorded with the mcap compression mode are not supported by the sync Node.
+> At the moment, rosbag recorded with the `mcap` compression mode are not supported by the sync Node.
 
 Parameters :
 - `sync_queue_size`: The number of messages to store for each input topic. Helps the synchronizer match messages by keeping recent history. Larger queue_size = more chance to find a match, but uses more memory.
@@ -281,8 +268,7 @@ Keyboard keys to control the svo replay :
 > The `sync_node` republishes topics using this format:  
 `/sync/<original_topic_name>`.
 
-For example, `/zed/zed_node/point_cloud/cloud_registered` becomes:  
-`/sync/zed/zed_node/point_cloud/cloud_registered`
+For example, `/zed/zed_node/point_cloud/cloud_registered` becomes:  `/sync/zed/zed_node/point_cloud/cloud_registered`
 
 #### Demo 
 
@@ -296,12 +282,60 @@ ros2 launch ros2_replay_data sync_node_demo.launch.py
 
 The example displays the current pointcloud. The rosbag contains the data from an external sensor source (Lidar) that is shown synchronized with the ZED wrapper topics. The SVO can be paused by pressing 'space' with the keyboard. Then, users can explore it messages by messages (right arrows). Users can adapt the demo launcher, example and rviz panels to fit their usecase and the parameters/topics they wish to see replayed and displayed from the ZED wrapper.
 
+#### 🚫 Limitations
 
-#### Limitations : Recommended Debugging Workflow.
+⚠️ This synchronization workflow works best with a limited number of topics that share similar time frames. It is ideal for quick optimization of ZED SDK parameters in combination with external sensor data (e.g., IMU, odometry, localization).
 
-Please note that this synchronization workflow can work on a limited number of topics. Synchronization can break easily if the SVO or rosbags were recorded under heavy load and are missing frames. To scale up with data replaying on a full robotic setup, we currently recommend the following workflow : 
-- leverage the SVO with the svo controller node to optimize SDK parameters. Sync node can also be used for this purpose. 
-- Once SDK parameters are optimized for your usecase, setup all your ROS nodes with the ZED wrapper and only record rosbags of the all the relevants topics to be then replayed with visualizers like __Foxglove__ or __Rviz__. For these rosbags, we recommend using the [mcap compression mode](https://github.com/ros2/rosbag2/tree/rolling/rosbag2_storage_mcap). The MCAP format can be direclty opened in __Foxglove__ and the panel updated to replay the relevant needed topics. Data is always synchronized, can be paused, fast-forwared or rewinded.
+For larger-scale setups involving full robotics stacks and broader topic coverage, we recommend an alternative approach:
+➡️ Convert the SVO to a rosbag, then merge it with the external data rosbag that was recorded simultaneously.
+
+### Convert SVO to Rosbag and merge it with the external data rosbag
+
+1️⃣ Record an Svo and rosbag simultaneously as per our recommended recording instructions (very important that they be recorded with the same timestamps to be able to synchronize).
+
+2️⃣ Configure and Launch the ZED ROS 2 Wrapper for SVO Playback
+
+- ✅ Set `use_svo_timestamps` to **true**  
+- ✅ Set `svo_realtime` to **false**  
+- ✅ Set `svo.publish_svo_clock` to **true** (allow to use the wrapper as new /clock simulated time for ROS)   
+- ✅ Adjust any other camera parameters as needed
+
+Replay the Svo with the ZED wrapper: 
+
+```bash 
+ros2 launch zed_wrapper zed_camera.launch.py namespace:=<namespace> camera_model:=<camera_model> camera_name:=<camera_name> svo_path:=<path/to/file.svos2> publish_svo_clock:=true 
+```
+
+3️⃣ Create a rosbag file that records the Zed SDK topics. Open a new terminal: 
+
+```bash
+ros2 bag record -s $(< path/to/txt/file/topics_to_record.txt) --use-sim-time
+```
+> Stop the rosbag record when the SVO is done replaying.
+
+4️⃣  Merge the newly created rosbag with the rosbag containing external navigation modules topics
+
+```bash
+ros2 bag convert -i /path/to/rosbag1 -i /path/to/rosbag2 -o out.yaml
+```
+with `out.yaml` being: 
+
+```yaml
+output_bags:
+- uri: merged_bag
+  all_topics: true
+  all_services: true
+```
+5️⃣ Replay the merged bag 
+
+```bash
+ros2 bag play merged_bag
+```
+Use __Rviz__ or __Foxglove__ for data visualization. Both rosbags data should be replaying with full synchronization. If you wish to replay the same sequence with different SDK parameters, you need to create a new Rosbag from the SVO and merge it with the rosbag containing the external navigation modules data.
+
+
+
+
 
 
 
