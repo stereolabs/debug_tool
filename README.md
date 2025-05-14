@@ -1,20 +1,30 @@
 <img src=".assets/stereolabs-icon.png" width="150">
 
-# 🎬 ZED ROS Wrapper: Replaying Data stored in SVO / Rosbag files
+# 🎬 ZED ROS Wrapper: Replaying Data stored in SVO / Rosbag files to debug your Robotic stack  
 
-This tutorial details the use of the ZED SDK and ZED ROS2 wrapper to **record** and **replay** data offline with different files (SVO, Rosbag) and replay tools: 
+This tutorial details the use of the ZED SDK and ZED ROS2 wrapper to **record** and **replay** data offline with different files (SVO, Rosbag) and replay tools. These tools can be used as part of debugging workflows, helping users optimize their robotics stack with ZED.
+
+
+**Tool for replaying SVOs**
 
 - the __svo_control_node__: allows users to control the replay of an SVO launched with the ZED ROS wrapper. Users can pause/resume the rosbag, change the svo position manually forward or in reverse, increase/decrease the replay rate. 
 
-- the __sync_node__: allows users to replay an SVO in the ZED ROS Wrapper and sync it with rosbag topics (limited at the moment to one rosbag topic of similar timerate like lidar data). Users can pause/resume the replay, and advance manually frame by frame while keeping topics synchronized. 
+**Tools for replaying SVOs in combination with ROSBags**
 
-These tools can be used as part of debugging workflows, helping users optimize their robotics stack with ZED.
+- the __sync_node__: allows users to replay an SVO in the ZED ROS Wrapper and sync it with rosbag topics (limited at the moment to rosbag topics of similar timerate). Users can pause/resume the replay, and advance manually frame by frame while keeping topics synchronized.
+
+- convert an SVO to a Rosbag workflow
+
 
 ## ⚙️ **Installation**  
 
 ### **1️⃣ Install the ZED SDK and ROS 2 Wrapper**  
 
-Ensure you have the latest [ZED SDK](https://www.stereolabs.com/en-fr/developers/release) downloaded and installed , then install the ZED ROS 2 Wrapper:  
+**Dependencies**: 
+
+-  Install the latest [ZED SDK](https://www.stereolabs.com/en-fr/developers/release) version.
+-  Install [ROS2 Humble](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html)
+-  Install the ZED ROS 2 Wrapper:  
 
 ```bash
 # Create and navigate to your ROS 2 workspace
@@ -51,7 +61,7 @@ source ~/.bashrc
 
 ## 🔴 Recording Data 
 
-### Recording SVO files
+### ZED SDK : Record SVO files
 
 An SVO file is a proprietary video file format used by ZED stereo camera. The file stores:
 
@@ -60,6 +70,8 @@ An SVO file is a proprietary video file format used by ZED stereo camera. The fi
 - IMU data (if enabled)
 
 Svo files can be recorded in two different ways : directly from __Zed_Explorer__ or using the ZED Ros wrapper.
+
+Svos can later be replayed with the ROS wrapper and tools from this package giving users the flexibility to replay the same recorded sequences multiple times with different ZED SDK parameters and optimize the cameras performances for each sequence.  
 
 #### Recording SVO files using the ZED_Explorer
 
@@ -96,14 +108,13 @@ ros2 service call /zed/zed_node/start_svo_rec zed_msgs/srv/StartSvoRec "{svo_fil
   ros2 service call /zed/zed_node/stop_svo_rec std_srvs/srv/Trigger
 ```
 
-### Recording Rosbag Files
+### Full Robotics Stack : Record Rosbag Files
 
+Rosbags are the commonly used files within the ROS framework to replay data and debug complex robotics system. They record topics from your stack modules and allow to replay them and visualize them using __RVIZ__ or __Foxglove__. Users do not have the flexibility to change parameters and optimize the recorded sequence during replay, but they can pause on the data and advance frame by frame to detect critical bugs in their navigation modules. Rosbag can impose a heavy load on your system while recording. Use the following tips to optimize recording performances.
 
-1️⃣ **Launch the ZED ROS 2 Wrapper:**  
-```bash
-ros2 launch zed_wrapper zed_camera.launch.py camera_model:=<camera_model>
-```
-For this step, the wrapper launcher can be replaced with the launcher of the full robotics stack (involving the wrapper + any other sensor node and proprietary navigation nodes).
+1️⃣ **Launch your full Robotics Stack**  
+
+For this step, You can launch your typical ROS launcher that will include all your robotics modules topics: sensor data (Zed Wrapper, Lidars ...), perception, navigation and localization modules. 
 
 2️⃣ **Record node topics as a Rosbag file**
 
@@ -115,11 +126,11 @@ Add the desired topics in a text file, for example : (make sure to change the to
 /zed/zed_node/point_cloud/cloud_registered
 /zed/zed_node/status/health
 /zed/zed_node/obj_det/objects
-.... + other topics
+.... + other module topics
 ```
 In a new terminal, run:
 ```bash
-ros2 bag record -s $(< path/to/txt/file/file.txt)
+ros2 bag record -s $(< path/to/txt/file/topics_to_record.txt)
 ```
 
 💡 Tips for recording rosbags efficiently and reduce overall recording load : 
@@ -129,16 +140,25 @@ ros2 bag record -s $(< path/to/txt/file/file.txt)
 > For better performances, used compressed topics for images and pointclouds when possible. The ZED ROS wrapper provides such topics.
 > Reduce frame rate for the images and pointclouds (e.g from 30 fps to 10 fps) to reduce rosbag loads.Reduce publishing rates of other topics when a fast publishing rate (>10 Hz) is not necessary.
 
+### 🚀 Recommended Recording Workflow
+
+To further optimize the recording performances, we recommend to record simultaneously an SVO and a Rosbag with the following tips : 
+
+- Svo recorded in H265 Lossy directly from the ZED Wrapper.
+- Rosbag only records topics that not related to the ZED SDK (removing heavy topics like pointclouds and image that downgrade performances)
+
+
+
 ## ▶️ Replaying Data
 
 ### Replay the SVO with the ZED ROS Wrapper (__svo_control_node__)
 
 #### What to use it for ?
 
-- Replaying specific recorded sequences with different SDK parameters to optimize modules (depth, positional tracking, object detection).
+- Replaying specific recorded sequences in ROS with different SDK parameters to optimize modules (depth, positional tracking, object detection).
 - Test new AI models on the recorded sequence to check for improvements
 - Inspect carefully a scene to detect potential issues.
-- Topics can be reused as input of other nodes to check their behavior.
+- Output topics can be reused as input of other nodes to check their behavior.
 
 
 #### How to use it
