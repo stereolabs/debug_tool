@@ -1,6 +1,6 @@
 <img src=".assets/stereolabs-icon.png" width="150">
 
-# 🎬 ZED ROS 2 Data Replay Tools: Debug and Optimize Your Navigation Stack with SVO/Rosbag
+# 🎬 ZED ROS 2 Data Replay Tools: Debug and Optimize Your Robotics Applications with SVO/Rosbag
 
 This tutorial provides a comprehensive guide to using the **ZED ROS 2 wrapper** to record, replay, and synchronize sensor data offline using various formats like **SVO** and **rosbag**. These tools are essential for developers working with the ZED stereo cameras in a ROS 2 environment, particularly when building, testing, or debugging complex robotics applications. They allow you to replicate scenarios offline, without needing live hardware or real-time replay. This leads to faster iteration, reproducibility, and deeper insights into system behavior.
 
@@ -280,14 +280,14 @@ ros2 launch ros2_replay_data sync_node_demo.launch.py
 
 <img src=".assets/sync_svo_rosbag.gif">
 
-The example displays the current pointcloud. The rosbag contains the data from an external sensor source (Lidar) that is shown synchronized with the ZED wrapper topics. The SVO can be paused by pressing 'space' with the keyboard. Then, users can explore it messages by messages (right arrows). Users can adapt the demo launcher, example and rviz panels to fit their usecase and the parameters/topics they wish to see replayed and displayed from the ZED wrapper.
+The example displays the current camera pointcloud extracted from the SVO file. The rosbag contains the data from an external sensor source (Lidar) that is shown synchronized with the camera. The SVO can be paused by pressing 'space' with the keyboard. Then, users can explore it messages by messages (right arrows). Users can adapt the demo launcher, example and rviz panels to fit their usecase and the parameters/topics they wish to see replayed and displayed from the ZED wrapper.
 
 #### 🚫 Limitations
 
 ⚠️ This synchronization workflow works best with a limited number of topics that share similar time frames. It is ideal for quick optimization of ZED SDK parameters in combination with external sensor data (e.g., IMU, odometry, localization).
 
 For larger-scale setups involving full robotics stacks and broader topic coverage, we recommend an alternative approach:
-➡️ Convert the SVO to a rosbag, then merge it with the external data rosbag that was recorded simultaneously.
+➡️ Convert the SVO to a rosbag, then merge it with the external data rosbag that was recorded simultaneously. Check the instructions below.
 
 ### Convert SVO to Rosbag and merge it with the external data rosbag
 
