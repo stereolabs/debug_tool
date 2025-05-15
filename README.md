@@ -123,7 +123,7 @@ Add the desired topics you wish to record in a text file and use the `ros2 bag r
 ros2 bag record -s $(< path/to/txt/file/topics_to_record.txt)
 ```
 
-🔥 **Tips for recording rosbags efficiently and reduce overall recording load: **
+🔥 **Tips for recording rosbags efficiently and reduce overall recording load:**
 
 > - Record only topics you need.
 > - Split large bags with the `--max-bag-size` or `--max-bag-duration` parameters.
