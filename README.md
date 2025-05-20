@@ -300,6 +300,8 @@ For larger-scale setups involving full robotics stacks and broader topic coverag
 - ✅ Set `svo.publish_svo_clock` to **true** (allow to use the wrapper as new /clock simulated time for ROS)   
 - ✅ Adjust any other camera parameters as needed
 
+Recompile your ROS workspace and source it after parameters changes.
+
 Replay the Svo with the ZED wrapper: 
 
 ```bash 
@@ -309,7 +311,7 @@ ros2 launch zed_wrapper zed_camera.launch.py namespace:=<namespace> camera_model
 3️⃣ Create a rosbag file that records the Zed SDK topics. Open a new terminal: 
 
 ```bash
-ros2 bag record -s $(< path/to/txt/file/topics_to_record.txt) --use-sim-time
+ros2 bag record  $(< path/to/txt/file/topics_to_record.txt) --use-sim-time
 ```
 > Stop the rosbag record when the SVO is done replaying.
 
