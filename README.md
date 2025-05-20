@@ -305,7 +305,7 @@ Recompile your ROS workspace and source it after parameters changes.
 Replay the Svo with the ZED wrapper: 
 
 ```bash 
-ros2 launch zed_wrapper zed_camera.launch.py namespace:=<namespace> camera_model:=<camera_model> camera_name:=<camera_name> svo_path:=<path/to/file.svos2> publish_svo_clock:=true 
+ros2 launch zed_wrapper zed_camera.launch.py namespace:=<namespace> camera_model:=<camera_model> camera_name:=<camera_name> svo_path:=<path/to/file.svo2> publish_svo_clock:=true 
 ```
 
 3️⃣ Create a rosbag file that records the Zed SDK topics. Open a new terminal: 
